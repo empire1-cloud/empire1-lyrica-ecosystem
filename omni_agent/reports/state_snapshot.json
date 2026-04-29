@@ -1,0 +1,84 @@
+{
+  "generated_at": "2026-04-29T20:33:49.967449+00:00",
+  "summary": {
+    "total": 4,
+    "by_status": {
+      "done": 3,
+      "blocked_context": 1
+    }
+  },
+  "tasks": [
+    {
+      "id": "TASK-001",
+      "source_file": "memory/tasks/inbox.md",
+      "source_line": 7,
+      "raw_text": "- [ ] TASK-001 backend: Create `backend/app/services/health_service.py` with a public `get_health()` function returning a dict including `status` and `module`.",
+      "normalized_text": "TASK-001 backend: Create `backend/app/services/health_service.py` with a public `get_health()` function returning a dict including `status` and `module`.",
+      "universe": null,
+      "layer": null,
+      "task_type": "backend",
+      "priority": 3,
+      "status": "done",
+      "acceptance_criteria": null,
+      "assumptions": null,
+      "blocked_reason": null,
+      "created_at": "2026-04-29T20:12:18.861796+00:00",
+      "updated_at": "2026-04-29T20:13:49.037961+00:00",
+      "closed_at": "2026-04-29T20:13:49.037961+00:00"
+    },
+    {
+      "id": "TASK-002",
+      "source_file": "memory/tasks/inbox.md",
+      "source_line": 8,
+      "raw_text": "- [ ] TASK-002 backend: Create `backend/app/core/email_validator_helper.py` with a public callable that accepts a string and returns True for non-empty input.",
+      "normalized_text": "TASK-002 backend: Create `backend/app/core/email_validator_helper.py` with a public callable that accepts a string and returns True for non-empty input.",
+      "universe": null,
+      "layer": null,
+      "task_type": "backend",
+      "priority": 3,
+      "status": "done",
+      "acceptance_criteria": null,
+      "assumptions": null,
+      "blocked_reason": null,
+      "created_at": "2026-04-29T20:12:18.867527+00:00",
+      "updated_at": "2026-04-29T20:14:32.071892+00:00",
+      "closed_at": "2026-04-29T20:14:32.071892+00:00"
+    },
+    {
+      "id": "TASK-003",
+      "source_file": "memory/tasks/inbox.md",
+      "source_line": 12,
+      "raw_text": "- [ ] TASK-003 docs: Document the omni_agent module overview by appending a section to `omni_agent/README.md`.",
+      "normalized_text": "TASK-003 docs: Document the omni_agent module overview by appending a section to `omni_agent/README.md`.",
+      "universe": null,
+      "layer": null,
+      "task_type": "docs",
+      "priority": 3,
+      "status": "done",
+      "acceptance_criteria": null,
+      "assumptions": null,
+      "blocked_reason": null,
+      "created_at": "2026-04-29T20:12:18.874282+00:00",
+      "updated_at": "2026-04-29T20:15:18.670613+00:00",
+      "closed_at": "2026-04-29T20:15:18.670613+00:00"
+    },
+    {
+      "id": "TASK-594f6b3c",
+      "source_file": "memory/tasks/inbox.md",
+      "source_line": 16,
+      "raw_text": "TODO: Integrate with payment provider TBD for #compliance audit (no provider chosen yet).",
+      "normalized_text": "Integrate with payment provider TBD for #compliance audit (no provider chosen yet).",
+      "universe": null,
+      "layer": null,
+      "task_type": "compliance",
+      "priority": 3,
+      "status": "blocked_context",
+      "acceptance_criteria": null,
+      "assumptions": null,
+      "blocked_reason": "third-party provider name and credentials channel; definition for TBD items in task text",
+      "created_at": "2026-04-29T20:12:18.879720+00:00",
+      "updated_at": "2026-04-29T20:33:42.155867+00:00",
+      "closed_at": null
+    }
+  ]
+}

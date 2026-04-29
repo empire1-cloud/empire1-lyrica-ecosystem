@@ -1,0 +1,128 @@
+persona_mode: hybrid          # llm | rule | hybrid
+repo_root: /app
+
+workspace:
+  name: default                # shown on client reports; slugified into filenames
+
+roi:
+  minutes_per_task_manual: 60  # assumed human minutes a completed task would have cost
+  dev_hourly_rate: 100         # cost rate used for estimated_cost_saved
+  currency: USD
+
+llm:
+  provider: anthropic
+  model: claude-sonnet-4-5-20250929
+  timeout_seconds: 30
+  max_retries: 1
+  api_key_env: EMERGENT_LLM_KEY
+  env_files:
+    - backend/.env
+
+state:
+  db_path: omni_agent/state/omni.db
+  json_export_path: omni_agent/state/tasks.json
+
+cohesion:
+  done_threshold: 85
+  weights:
+    acceptance: 35
+    tests: 25
+    regression: 20
+    quality: 10
+    guardrail: 10
+
+guardrails:
+  allowed_paths:
+    - frontend/src/**
+    - backend/app/routers/**
+    - backend/app/services/**
+    - backend/app/core/**
+    - backend/tests/**
+    - memory/tasks/**
+    - omni_agent/**
+  forbidden_paths:
+    - foundry/empire1/laws/**
+    - foundry/empire1/blueprints/**
+    - foundry/empire1/documentation/**
+    - "**/.env"
+    - "**/.env.*"
+    - "**/secrets/**"
+    - "**/keys/**"
+    - investor/**
+    - strategy/**
+
+scan:
+  globs:
+    - memory/tasks/inbox.md
+    - memory/tasks/**/*.md
+  patterns:
+    checkbox: '^\s*-\s*\[\s\]\s*(.*)$'
+    todo: '\bTODO:\s*(.*)$'
+    fixme: '\bFIXME:\s*(.*)$'
+
+reports:
+  latest_path: omni_agent/reports/latest.md
+  state_snapshot_path: omni_agent/reports/state_snapshot.json
+
+triage:
+  hybrid_block_on_missing_context: true
+  missing_context_threshold: high       # high | medium | low
+  confidence_threshold: 0.5             # block if triage.confidence < this AND missing_context non-empty
+  type_keywords:
+    backend:
+      - api
+      - endpoint
+      - router
+      - service
+      - backend
+      - fastapi
+      - pydantic
+      - sqlite
+      - mongo
+    frontend:
+      - frontend
+      - react
+      - component
+      - ui
+      - jsx
+      - tsx
+      - css
+    tests:
+      - test
+      - pytest
+      - coverage
+      - regression
+    docs:
+      - document
+      - documentation
+      - readme
+      - docstring
+    infra:
+      - docker
+      - ci
+      - deploy
+      - infra
+      - pipeline
+    compliance:
+      - compliance
+      - audit
+      - gdpr
+      - policy
+  priority_keywords:
+    1:
+      - "p0"
+      - "urgent"
+      - "critical"
+      - "security"
+    2:
+      - "p1"
+      - "high"
+    3:
+      - "p2"
+      - "medium"
+    4:
+      - "p3"
+      - "low"
+    5:
+      - "p4"
+      - "nice to have"
