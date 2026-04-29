@@ -74,17 +74,19 @@ Every run writes to a SQLite audit table. The ROI Tracker reads it directly. No 
 - `minutes_per_task_manual`: **60**
 - `dev_hourly_rate`: **$100**
 
-**Example — from a single week in one workspace:**
+**`REPLACE-BEFORE-PUBLISH` — paste your own output from `python scripts/omni_agent.py status --json | jq .roi_weekly`.**
+
+For reference, the current state DB in this repo produces:
 
 | Metric | Value |
 |---|---|
-| Tasks completed | 17 |
-| Avg. cohesion score | 89.1 |
-| Blocked rate | 12% |
-| Hours saved (7d) | 17.0 |
-| Cost saved (7d) | **$1,700** |
+| Tasks completed | 3 of 4 |
+| Avg. cohesion score | 80.25 |
+| Blocked rate | 25% |
+| Hours saved (7d) | 3.0 |
+| Cost saved (7d) | **USD 300** |
 
-That's one workspace. You'll see your own numbers in your own report after the first run.
+These are the exact numbers emitted by the ROI Tracker on the repo where Omni-Agent itself was built. Swap in your own before publishing.
 
 > Claim boundary: we report the numbers the state DB contains. We do not estimate future savings or inflate. The only soft assumption is minutes-per-task — you set it.
 

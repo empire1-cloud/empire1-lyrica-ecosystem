@@ -39,13 +39,13 @@ _Founder-led outbound. Evidence > flattery. No fake social proof._
 
 ### Email 2 — _ROI-first, for founders_
 
-> **Subject:** Closed 17 backlog tasks last week. Here's the report.
+> **Subject:** The ROI number from last week's backlog runs
 >
 > {first_name},
 >
 > I'm building Omni-Agent. It closes unfinished tasks in markdown notes (`TODO:`, `- [ ]`) using a persona-based loop that writes only inside allowed paths and refuses to mark anything done below an 85/100 cohesion score.
 >
-> Every run emits a client report with evidence, blockers, risks, and a cost-saved number. Last week on my own repo: 17 tasks, avg cohesion 89.1, estimated ~$1,700 saved at my set hourly rate.
+> Every run emits a client report with evidence, blockers, risks, and a cost-saved number computed from the local audit DB. Before sending this email, paste your own numbers here from `status --json | jq .roi_weekly` — whatever they are, they're real, and that's the point.
 >
 > If that's the kind of number your team wants to see, I can set it up on one of your repos in 15 minutes. Free tier is real.
 >

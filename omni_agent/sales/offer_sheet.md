@@ -78,4 +78,4 @@ All five come straight from the ROI Tracker. No custom instrumentation.
 
 ## NEXT STEP
 
-Email **founder@omni-agent.dev** with the repo path you'd point it at, and we'll schedule a 20-minute demo this week.
+Email **`{replace-with-your-founder-email}`** with the repo path you'd point it at, and we'll schedule a 20-minute demo this week.
