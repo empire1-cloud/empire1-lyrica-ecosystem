@@ -69,6 +69,10 @@ def cmd_status(args) -> int:
     print(f"Total tasks: {st['total']}")
     for s, n in sorted(st["by_status"].items()):
         print(f"  {s}: {n}")
+    from omni_agent.reporting.roi import format_summary_line
+    print("")
+    print("ROI (all time): " + format_summary_line(st["roi"]))
+    print("ROI (last 7d):  " + format_summary_line(st["roi_weekly"]))
     if args.verbose or args.json:
         for t in st["tasks"]:
             print(f"  - {t['id']} [{t['status']}] {t['task_type']} p{t['priority']} :: {t['normalized_text']}")
@@ -81,6 +85,23 @@ def cmd_report(args) -> int:
     orc = _build_orchestrator(args)
     path = orc.report()
     print(f"Report written: {path}")
+    return 0
+
+
+def cmd_pr_preview(args) -> int:
+    orc = _build_orchestrator(args)
+    from omni_agent.reporting.pr_preview import PRPreviewError
+    try:
+        result = orc.generate_pr_preview(args.task_id)
+    except PRPreviewError as e:
+        print(f"Error: {e}", file=sys.stderr)
+        return 3
+    print(f"PR preview written: {result['path']}")
+    if args.print:
+        print("")
+        print(result["markdown"])
+    if args.json:
+        _print_json({"path": str(result["path"]), "meta": result["meta"]})
     return 0
 
 
@@ -115,6 +136,10 @@ def _print_human_output(out: dict) -> None:
     if gc:
         print(f"Guardrail: score={gc.get('score')} proposed={gc.get('proposed_total')} "
               f"applied={gc.get('applied_total')} filtered={len(gc.get('filtered_paths') or [])}")
+    cr = out.get("client_report")
+    if cr:
+        print(f"Client report: {cr.get('markdown')}")
+        print(f"               {cr.get('json')}")
     print("=" * 72)
 
 
@@ -136,8 +161,12 @@ def build_parser() -> argparse.ArgumentParser:
     rt.add_argument("task_id")
     rt.add_argument("--dry-run", action="store_true")
 
-    sub.add_parser("status", help="show task counts and list")
+    sub.add_parser("status", help="show task counts, ROI, and task list")
     sub.add_parser("report", help="write reports/latest.md")
+
+    pp = sub.add_parser("pr-preview", help="generate a PR-ready markdown body for a done task")
+    pp.add_argument("task_id")
+    pp.add_argument("--print", action="store_true", help="print preview body to stdout")
 
     return p
 
@@ -152,6 +181,7 @@ def main(argv=None) -> int:
         "run-task": cmd_run_task,
         "status": cmd_status,
         "report": cmd_report,
+        "pr-preview": cmd_pr_preview,
     }
     return handlers[args.cmd](args)
 

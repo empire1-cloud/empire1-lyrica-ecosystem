@@ -1,6 +1,14 @@
 persona_mode: hybrid          # llm | rule | hybrid
 repo_root: /app
 
+workspace:
+  name: default                # shown on client reports; slugified into filenames
+
+roi:
+  minutes_per_task_manual: 60  # assumed human minutes a completed task would have cost
+  dev_hourly_rate: 100         # cost rate used for estimated_cost_saved
+  currency: USD
+
 llm:
   provider: anthropic
   model: claude-sonnet-4-5-20250929

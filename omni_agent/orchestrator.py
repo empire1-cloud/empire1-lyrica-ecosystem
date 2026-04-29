@@ -13,6 +13,7 @@ import yaml
 from omni_agent.guardrails import Guardrails
 from omni_agent.llm_client import LLMClient
 from omni_agent.personas import analyst, developer, evaluator
+from omni_agent.reporting import client_report, pr_preview, roi as roi_mod
 from omni_agent.scanner import scan_repo
 from omni_agent.state_machine import StateMachine
 from omni_agent.triage import triage_task
@@ -194,14 +195,39 @@ class Orchestrator:
             summary = f"failed score={score}"
 
         self.state.end_run(run_id, final_status=final_status, cohesion_score=score, summary=summary)
-        return self._build_output(task, run_id, tri, spec, dev_out, eval_out,
-                                  final_status=final_status, blockers=[], dry_run=False)
+        out = self._build_output(task, run_id, tri, spec, dev_out, eval_out,
+                                 final_status=final_status, blockers=[], dry_run=False)
+        # auto-generate client report (non-fatal if it errors)
+        try:
+            paths = client_report.generate(run_output=out, state=self.state, config=self.config)
+            out["client_report"] = {"markdown": str(paths["markdown"]), "json": str(paths["json"])}
+        except Exception as e:  # pragma: no cover
+            logger.warning("client report generation failed: %s", e)
+            out["client_report"] = None
+        return out
 
     def run_next(self, *, dry_run: bool = False) -> Optional[Dict[str, Any]]:
         nxt = self.state.next_runnable()
         if not nxt:
             return None
         return self.run_task(nxt["id"], dry_run=dry_run)
+
+    # ---------- monetized features ----------
+    def compute_roi(self, *, window: Optional[str] = None) -> Dict[str, Any]:
+        """window: None=all-time, 'weekly', 'monthly'."""
+        if window == "weekly":
+            return roi_mod.weekly(self.state, self.config)
+        if window == "monthly":
+            return roi_mod.monthly(self.state, self.config)
+        return roi_mod.compute_roi(self.state, self.config)
+
+    def generate_client_report(self, run_output: Dict[str, Any]) -> Dict[str, Path]:
+        return client_report.generate(
+            run_output=run_output, state=self.state, config=self.config,
+        )
+
+    def generate_pr_preview(self, task_id: str) -> Dict[str, Any]:
+        return pr_preview.generate(task_id=task_id, state=self.state, config=self.config)
 
     # ---------- block-up-front decision ----------
     def _should_block_upfront(self, tri):
@@ -327,6 +353,8 @@ class Orchestrator:
             "total": len(tasks),
             "by_status": dict(counts),
             "tasks": tasks,
+            "roi": self.compute_roi(),
+            "roi_weekly": self.compute_roi(window="weekly"),
         }
 
     def report(self) -> Path:
@@ -355,13 +383,27 @@ class Orchestrator:
                 f"| `{t['id']}` | `{t['status']}` | {t['task_type'] or ''} | {t['priority']} "
                 f"| {t['source_file']}:{t['source_line']} | {run_label} | {score} |"
             )
+
+        # Weekly ROI section (additive, non-breaking)
+        wroi = st["roi_weekly"]
+        lines += ["", "## Weekly ROI (last 7 days)",
+                  f"- Tasks completed: **{wroi['tasks_completed']}**",
+                  f"- Avg cohesion: **{wroi['avg_cohesion_score']}**",
+                  f"- Blocked rate: **{int(wroi['blocked_rate']*100)}%**",
+                  f"- Test pass rate: **{wroi['test_pass_rate']}**",
+                  f"- Hours saved: **{wroi['estimated_hours_saved']}**",
+                  f"- Cost saved: **{wroi['currency']} {wroi['estimated_cost_saved']}**",
+                  f"- Assumptions: {int(wroi['assumptions']['minutes_per_task_manual'])} min/task @ "
+                  f"{wroi['currency']} {wroi['assumptions']['dev_hourly_rate']}/hr"]
         latest_path.write_text("\n".join(lines) + "\n", encoding="utf-8")
 
-        # JSON snapshot
+        # JSON snapshot (adds roi_weekly; preserves existing keys)
         snapshot = {
             "generated_at": datetime.now(timezone.utc).isoformat(),
             "summary": {"total": st["total"], "by_status": st["by_status"]},
             "tasks": st["tasks"],
+            "roi_weekly": wroi,
+            "roi_all_time": st["roi"],
         }
         snapshot_path.parent.mkdir(parents=True, exist_ok=True)
         snapshot_path.write_text(json.dumps(snapshot, indent=2, default=str), encoding="utf-8")
