@@ -17,10 +17,11 @@ state:
 cohesion:
   done_threshold: 85
   weights:
-    acceptance: 40
-    tests: 30
+    acceptance: 35
+    tests: 25
     regression: 20
     quality: 10
+    guardrail: 10
 
 guardrails:
   allowed_paths:
@@ -56,6 +57,9 @@ reports:
   state_snapshot_path: omni_agent/reports/state_snapshot.json
 
 triage:
+  hybrid_block_on_missing_context: true
+  missing_context_threshold: high       # high | medium | low
+  confidence_threshold: 0.5             # block if triage.confidence < this AND missing_context non-empty
   type_keywords:
     backend:
       - api

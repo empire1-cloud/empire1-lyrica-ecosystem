@@ -17,12 +17,15 @@ Build an internal Omni-Agent that autonomously completes unfinished tasks discov
 - Notes write-back (`[ ]` → `[x]` + timestamp; `BLOCKED_CONTEXT` markers).
 - CLI: `scan | run-next | run-task | status | report` (+ `--dry-run`, `--json`).
 
-## What's been implemented (2026-04-29)
-- Full module tree: `omni_agent/` (scanner, triage, guardrails, llm_client, state_machine, orchestrator, personas/{analyst,developer,evaluator}, tests/) + `scripts/omni_agent.py` CLI.
-- SQLite schema with 7 tables (tasks, task_runs, state_transitions, persona_outputs, artifacts, test_executions, run_config_snapshots).
-- Hybrid LLM with Claude Sonnet 4.5 (Emergent Universal Key) and automatic fallback to rule-based personas.
-- 22 unit tests for scanner / triage / state machine — all passing.
-- First-run loop verified: scan → run-next --dry-run → real run-task → report. 3 of 4 demo tasks completed (`done` with score 88–91); 1 correctly landed at `evaluating_failed` because LLM proposed forbidden paths and acceptance criteria couldn't be met.
+## What's been implemented
+- 2026-04-29 MVP: full Omni-Agent package, SQLite persistence, hybrid LLM, 22 unit tests, first-run loop verified, 3/4 demo tasks done.
+- 2026-04-29 P1.1 + P1.2:
+  - Block-up-front policy locked: `rule` always blocks; `hybrid` hard-blocks pre-Analyst when missing_context + confidence<0.5; `llm` never auto-blocks.
+  - New audit fields `blocked_stage` (`pre_analyst` | `analyst` | `developer`) and `blocked_reason` (code) on every blocked output.
+  - Evaluator now computes a **guardrail_compliance** subscore; criteria referencing guardrail-filtered paths are marked `out_of_scope` and excluded from acceptance.
+  - Cohesion weights rebalanced: 35 / 25 / 20 / 10 / **10** (guardrail).
+  - +15 new unit tests (total 37 passing).
+  - Verified live: TASK-594f6b3c now correctly lands at `blocked_context` with `blocked_stage=pre_analyst` / `blocked_reason=missing_context_low_confidence` instead of `evaluating_failed`.
 
 ## Backlog
 ### P0

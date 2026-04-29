@@ -96,7 +96,8 @@ class Orchestrator:
             task = self.state.get_task(task_id)
 
         # blocked_context up-front?
-        if tri.missing_context and self.persona_mode == "rule":
+        block_decision = self._should_block_upfront(tri)
+        if block_decision:
             self.state.transition(
                 task_id, "blocked_context", actor="triage", reason="; ".join(tri.missing_context), run_id=run_id
             )
@@ -105,7 +106,9 @@ class Orchestrator:
             self._writeback_blocked(task, tri.missing_context)
             return self._build_output(task, run_id, tri, None, None, None,
                                       final_status="blocked_context",
-                                      blockers=tri.missing_context, dry_run=dry_run)
+                                      blockers=tri.missing_context, dry_run=dry_run,
+                                      blocked_stage="pre_analyst",
+                                      blocked_reason=block_decision)
 
         # ANALYST
         self.state.transition(task_id, "analyzing", actor="orchestrator", run_id=run_id)
@@ -123,7 +126,9 @@ class Orchestrator:
             self._writeback_blocked(task, missing_ctx)
             return self._build_output(task, run_id, tri, spec, None, None,
                                       final_status="blocked_context",
-                                      blockers=missing_ctx, dry_run=dry_run)
+                                      blockers=missing_ctx, dry_run=dry_run,
+                                      blocked_stage="analyst",
+                                      blocked_reason="analyst_flagged_missing_context")
 
         # DEVELOPER
         self.state.transition(task_id, "building", actor="orchestrator", run_id=run_id)
@@ -143,7 +148,9 @@ class Orchestrator:
             self._writeback_blocked(task, [dev_out["blocked_context"]])
             return self._build_output(task, run_id, tri, spec, dev_out, None,
                                       final_status="blocked_context",
-                                      blockers=[dev_out["blocked_context"]], dry_run=dry_run)
+                                      blockers=[dev_out["blocked_context"]], dry_run=dry_run,
+                                      blocked_stage="developer",
+                                      blocked_reason="developer_no_writable_target")
 
         if dry_run:
             # don't transition further; revert to not_started but keep artifacts as evidence
@@ -195,6 +202,24 @@ class Orchestrator:
         if not nxt:
             return None
         return self.run_task(nxt["id"], dry_run=dry_run)
+
+    # ---------- block-up-front decision ----------
+    def _should_block_upfront(self, tri):
+        """Decide whether to block before Analyst. Returns reason code or None."""
+        if not tri.missing_context:
+            return None
+        if self.persona_mode == "rule":
+            return "rule_mode_missing_context"
+        tri_cfg = self.config.get("triage", {}) or {}
+        if self.persona_mode == "hybrid" and tri_cfg.get("hybrid_block_on_missing_context", True):
+            threshold = tri_cfg.get("missing_context_threshold", "high")
+            sev_map = {"high": 1, "medium": 2, "low": 3}
+            need = sev_map.get(threshold, 1)
+            if len(tri.missing_context) >= need:
+                conf_thresh = float(tri_cfg.get("confidence_threshold", 0.5))
+                if tri.confidence < conf_thresh:
+                    return "missing_context_low_confidence"
+        return None
 
     # ---------- writeback ----------
     def _writeback_done(self, task: Dict[str, Any]) -> None:
@@ -251,6 +276,8 @@ class Orchestrator:
         final_status: str,
         blockers: list,
         dry_run: bool,
+        blocked_stage: Optional[str] = None,
+        blocked_reason: Optional[str] = None,
     ) -> Dict[str, Any]:
         files_changed = []
         if dev_out:
@@ -265,13 +292,17 @@ class Orchestrator:
             "run_id": run_id,
             "final_status": final_status,
             "dry_run": dry_run,
+            "blocked_stage": blocked_stage,
+            "blocked_reason": blocked_reason,
             "mini_spec": spec,
             "files_changed": files_changed,
+            "filtered_by_guardrails": (dev_out or {}).get("filtered_paths", []),
             "tests": (eval_out or {}).get("tests"),
             "lint": (eval_out or {}).get("lint"),
             "evidence": {
                 "criteria_results": (eval_out or {}).get("criteria_results", []),
                 "regression_ok": (eval_out or {}).get("regression_ok"),
+                "guardrail_compliance": (eval_out or {}).get("guardrail_compliance"),
                 "developer_notes": (dev_out or {}).get("patch", {}).get("notes") if dev_out else None,
                 "developer_errors": (dev_out or {}).get("errors") if dev_out else None,
             },

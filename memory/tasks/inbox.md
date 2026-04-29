@@ -13,4 +13,4 @@ A few seeded tasks for the Omni-Agent demo run. Add more as you go.
 
 ## Blocked sample
 
-TODO: Integrate with payment provider TBD for #compliance audit (no provider chosen yet).
+TODO: Integrate with payment provider TBD for #compliance audit (no provider chosen yet). <!-- BLOCKED_CONTEXT: third-party provider name and credentials channel | definition for TBD items in task text (task TASK-594f6b3c) -->

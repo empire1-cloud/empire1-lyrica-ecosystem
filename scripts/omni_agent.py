@@ -90,8 +90,13 @@ def _print_human_output(out: dict) -> None:
     print(f"Run ID:                {out.get('run_id')}")
     print(f"Final status:          {out.get('final_status')}")
     print(f"Dry run:               {out.get('dry_run')}")
+    if out.get("blocked_stage"):
+        print(f"Blocked stage:         {out.get('blocked_stage')}")
+        print(f"Blocked reason:        {out.get('blocked_reason')}")
     print(f"Cohesion score:        {out.get('cohesion_score')}")
     print(f"Files changed:         {out.get('files_changed')}")
+    if out.get("filtered_by_guardrails"):
+        print(f"Filtered by guardrails: {out.get('filtered_by_guardrails')}")
     print(f"Risks/blockers:        {out.get('risks_blockers')}")
     print(f"Next task recommended: {out.get('next_task_recommendation')}")
     spec = out.get("mini_spec") or {}
@@ -106,6 +111,10 @@ def _print_human_output(out: dict) -> None:
     lint = out.get("lint") or {}
     if lint:
         print(f"Lint:  status={lint.get('status')}")
+    gc = (out.get("evidence") or {}).get("guardrail_compliance") or {}
+    if gc:
+        print(f"Guardrail: score={gc.get('score')} proposed={gc.get('proposed_total')} "
+              f"applied={gc.get('applied_total')} filtered={len(gc.get('filtered_paths') or [])}")
     print("=" * 72)
 
 

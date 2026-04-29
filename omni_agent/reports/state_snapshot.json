@@ -1,10 +1,10 @@
 {
-  "generated_at": "2026-04-29T20:19:13.569764+00:00",
+  "generated_at": "2026-04-29T20:33:49.967449+00:00",
   "summary": {
     "total": 4,
     "by_status": {
       "done": 3,
-      "evaluating_failed": 1
+      "blocked_context": 1
     }
   },
   "tasks": [
@@ -72,12 +72,12 @@
       "layer": null,
       "task_type": "compliance",
       "priority": 3,
-      "status": "evaluating_failed",
+      "status": "blocked_context",
       "acceptance_criteria": null,
       "assumptions": null,
-      "blocked_reason": null,
+      "blocked_reason": "third-party provider name and credentials channel; definition for TBD items in task text",
       "created_at": "2026-04-29T20:12:18.879720+00:00",
-      "updated_at": "2026-04-29T20:18:50.487981+00:00",
+      "updated_at": "2026-04-29T20:33:42.155867+00:00",
       "closed_at": null
     }
   ]

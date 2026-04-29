@@ -198,16 +198,22 @@ def run(
             if parsed and isinstance(parsed.get("changes"), list):
                 # filter unsafe paths
                 safe_changes = []
+                filtered_paths: List[str] = []
                 for ch in parsed["changes"]:
                     p = ch.get("path", "")
-                    ok, _ = guardrails.check_write(p)
+                    ok, reason = guardrails.check_write(p)
                     if ok:
                         safe_changes.append(ch)
+                    else:
+                        filtered_paths.append(p)
+                        logger.info("developer: filtered out-of-allowlist path '%s' (%s)", p, reason)
                 if safe_changes:
                     patch = {
                         "changes": safe_changes,
                         "notes": parsed.get("notes", ""),
                         "blocked": False,
+                        "filtered_paths": filtered_paths,
+                        "proposed_total": len(parsed["changes"]),
                     }
                     mode_used = "llm"
         except LLMUnavailable as e:
@@ -234,4 +240,6 @@ def run(
         "errors": errors,
         "mode_used": mode_used,
         "blocked_context": None,
+        "filtered_paths": patch.get("filtered_paths", []),
+        "proposed_total": patch.get("proposed_total", len(patch.get("changes", []))),
     }
