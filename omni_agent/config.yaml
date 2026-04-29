@@ -1,0 +1,116 @@
+persona_mode: hybrid          # llm | rule | hybrid
+repo_root: /app
+
+llm:
+  provider: anthropic
+  model: claude-sonnet-4-5-20250929
+  timeout_seconds: 30
+  max_retries: 1
+  api_key_env: EMERGENT_LLM_KEY
+  env_files:
+    - backend/.env
+
+state:
+  db_path: omni_agent/state/omni.db
+  json_export_path: omni_agent/state/tasks.json
+
+cohesion:
+  done_threshold: 85
+  weights:
+    acceptance: 40
+    tests: 30
+    regression: 20
+    quality: 10
+
+guardrails:
+  allowed_paths:
+    - frontend/src/**
+    - backend/app/routers/**
+    - backend/app/services/**
+    - backend/app/core/**
+    - backend/tests/**
+    - memory/tasks/**
+    - omni_agent/**
+  forbidden_paths:
+    - foundry/empire1/laws/**
+    - foundry/empire1/blueprints/**
+    - foundry/empire1/documentation/**
+    - "**/.env"
+    - "**/.env.*"
+    - "**/secrets/**"
+    - "**/keys/**"
+    - investor/**
+    - strategy/**
+
+scan:
+  globs:
+    - memory/tasks/inbox.md
+    - memory/tasks/**/*.md
+  patterns:
+    checkbox: '^\s*-\s*\[\s\]\s*(.*)$'
+    todo: '\bTODO:\s*(.*)$'
+    fixme: '\bFIXME:\s*(.*)$'
+
+reports:
+  latest_path: omni_agent/reports/latest.md
+  state_snapshot_path: omni_agent/reports/state_snapshot.json
+
+triage:
+  type_keywords:
+    backend:
+      - api
+      - endpoint
+      - router
+      - service
+      - backend
+      - fastapi
+      - pydantic
+      - sqlite
+      - mongo
+    frontend:
+      - frontend
+      - react
+      - component
+      - ui
+      - jsx
+      - tsx
+      - css
+    tests:
+      - test
+      - pytest
+      - coverage
+      - regression
+    docs:
+      - document
+      - documentation
+      - readme
+      - docstring
+    infra:
+      - docker
+      - ci
+      - deploy
+      - infra
+      - pipeline
+    compliance:
+      - compliance
+      - audit
+      - gdpr
+      - policy
+  priority_keywords:
+    1:
+      - "p0"
+      - "urgent"
+      - "critical"
+      - "security"
+    2:
+      - "p1"
+      - "high"
+    3:
+      - "p2"
+      - "medium"
+    4:
+      - "p3"
+      - "low"
+    5:
+      - "p4"
+      - "nice to have"
