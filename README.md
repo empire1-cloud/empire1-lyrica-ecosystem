@@ -23,6 +23,15 @@ Omni-Agent runs a guarded task loop:
 
 The default engine is hybrid: it can use an LLM when configured and falls back to deterministic rule-based personas when the LLM is unavailable.
 
+## Is Omni-Agent a fit?
+
+The two main questions are simple:
+
+1. **Do you already keep actionable work in markdown?** Omni-Agent's native intake is markdown task memory such as `memory/tasks/**/*.md`, so teams already using `TODO.md`, backlog notes, runbooks, or markdown task files have the shortest path to value.
+2. **Can you run it locally or deploy the supporting services?** The task-execution engine is designed to run locally against the repository. The API and product web layer can also be deployed using the included Render blueprint.
+
+If both answers are yes, Omni-Agent can fit into the workflow without requiring a new project-management system or giving the v1 GitHub App access to repository contents.
+
 ## Core features
 
 - Persona-based Analyst → Developer → Evaluator execution loop
