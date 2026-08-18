@@ -88,3 +88,7 @@ credentials.json
 *.pem
 *.key
 .credentials
+
+# ...but do track checked-in example/template env files (no real secrets in these)
+!.env.example
+!**/.env.example

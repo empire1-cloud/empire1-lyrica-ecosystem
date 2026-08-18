@@ -1,3 +1,4 @@
+import sys
 from fastapi import FastAPI, APIRouter
 from dotenv import load_dotenv
 from starlette.middleware.cors import CORSMiddleware
@@ -12,15 +13,38 @@ from datetime import datetime, timezone
 
 
 ROOT_DIR = Path(__file__).parent
+if str(ROOT_DIR) not in sys.path:
+    sys.path.insert(0, str(ROOT_DIR))
 load_dotenv(ROOT_DIR / '.env')
 
-# MongoDB connection
-mongo_url = os.environ['MONGO_URL']
-client = AsyncIOMotorClient(mongo_url)
-db = client[os.environ['DB_NAME']]
+# MongoDB connection — optional. Product routes that don't need a DB
+# (billing, health, the marketing site) must keep working even before
+# Mongo is provisioned, so a missing MONGO_URL now logs a warning and
+# leaves `db` as None instead of crashing the app at import time. Behavior
+# is unchanged when MONGO_URL *is* set.
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+)
+logger = logging.getLogger(__name__)
+
+mongo_url = os.environ.get('MONGO_URL')
+client = None
+db = None
+if mongo_url:
+    client = AsyncIOMotorClient(mongo_url)
+    db = client[os.environ.get('DB_NAME', 'omni_agent')]
+else:
+    logger.warning("MONGO_URL not set — starting without a database. "
+                    "Status-check and Mongo-backed routes will be unavailable; "
+                    "billing/health routes work regardless.")
 
 # Create the main app without a prefix
-app = FastAPI()
+app = FastAPI(title="Omni-Agent API")
+app.state.db = db
+
+from app.routers import billing as billing_router  # noqa: E402
+from app.routers import health as health_router  # noqa: E402
 
 # Create a router with the /api prefix
 api_router = APIRouter(prefix="/api")
@@ -44,30 +68,38 @@ async def root():
 
 @api_router.post("/status", response_model=StatusCheck)
 async def create_status_check(input: StatusCheckCreate):
+    if db is None:
+        from fastapi import HTTPException
+        raise HTTPException(status_code=503, detail="MONGO_URL not configured")
     status_dict = input.model_dump()
     status_obj = StatusCheck(**status_dict)
-    
+
     # Convert to dict and serialize datetime to ISO string for MongoDB
     doc = status_obj.model_dump()
     doc['timestamp'] = doc['timestamp'].isoformat()
-    
+
     _ = await db.status_checks.insert_one(doc)
     return status_obj
 
 @api_router.get("/status", response_model=List[StatusCheck])
 async def get_status_checks():
+    if db is None:
+        from fastapi import HTTPException
+        raise HTTPException(status_code=503, detail="MONGO_URL not configured")
     # Exclude MongoDB's _id field from the query results
     status_checks = await db.status_checks.find({}, {"_id": 0}).to_list(1000)
-    
+
     # Convert ISO string timestamps back to datetime objects
     for check in status_checks:
         if isinstance(check['timestamp'], str):
             check['timestamp'] = datetime.fromisoformat(check['timestamp'])
-    
+
     return status_checks
 
 # Include the router in the main app
 app.include_router(api_router)
+app.include_router(billing_router.router)
+app.include_router(health_router.router)
 
 app.add_middleware(
     CORSMiddleware,
@@ -77,13 +109,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Configure logging
-logging.basicConfig(
-    level=logging.INFO,
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
-)
-logger = logging.getLogger(__name__)
-
 @app.on_event("shutdown")
 async def shutdown_db_client():
-    client.close()
+    if client is not None:
+        client.close()
