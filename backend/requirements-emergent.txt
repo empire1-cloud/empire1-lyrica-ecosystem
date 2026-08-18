@@ -1,0 +1,7 @@
+# Optional Emergent-enabled dependency set.
+#
+# Use this only in an environment that has access to Emergent's private Python
+# package index. Public hosts such as Vercel must use requirements.txt instead.
+-r requirements.txt
+
+emergentintegrations==0.1.0
