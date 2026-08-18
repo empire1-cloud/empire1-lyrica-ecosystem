@@ -1,5 +1,8 @@
-# Render Blueprint for Omni-Agent's marketing/billing surface (the API +
-# pricing site — NOT the omni_agent CLI itself, which stays a local tool).
+# Render Blueprint for Omni-Agent's marketing/billing/GitHub-App surface
+# (the API + pricing site — NOT the omni_agent CLI itself, which stays a
+# local tool run against the customer's own repo). The API service also
+# hosts the GitHub App's webhook + manifest-registration endpoints — see
+# backend/app/routers/github_app.py and MARKETPLACE.md.
 #
 # This file only describes infrastructure. It deploys NOTHING on its own —
 # Render only acts on it when someone connects this repo as a Blueprint in
@@ -43,6 +46,20 @@ services:
         sync: false
       - key: APP_BASE_URL
         sync: false # this API's own public URL, e.g. https://omni-agent-api.onrender.com
+      - key: FRONTEND_BASE_URL
+        sync: false # the omni-agent-web service's public URL — used by the GitHub App manifest
+      - key: GITHUB_APP_ID
+        sync: false # from GET /api/github/app/new's manifest flow, run after first deploy
+      - key: GITHUB_APP_PRIVATE_KEY
+        sync: false
+      - key: GITHUB_WEBHOOK_SECRET
+        sync: false
+      - key: GITHUB_CLIENT_ID
+        sync: false
+      - key: GITHUB_CLIENT_SECRET
+        sync: false
+      - key: GITHUB_APP_OWNER_ORG
+        sync: false # optional — leave unset to register under a personal account
 
   - type: web
     name: omni-agent-web
@@ -62,3 +79,7 @@ services:
     envVars:
       - key: REACT_APP_BACKEND_URL
         sync: false # set to omni-agent-api's public URL once it's deployed
+      - key: REACT_APP_GITHUB_APP_INSTALL_URL
+        sync: false # https://github.com/apps/<slug> — set once the GitHub App exists
+      - key: REACT_APP_GITHUB_MARKETPLACE_URL
+        sync: false # https://github.com/marketplace/<slug> — set once the listing is live
