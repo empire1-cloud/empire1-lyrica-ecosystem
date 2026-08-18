@@ -1,0 +1,74 @@
+"""Lightweight persistence for paid-customer events.
+
+Design goal: the billing flow must work even before Mongo is provisioned
+(see `backend/server.py`, which now makes `MONGO_URL` optional). So this
+store writes to Mongo when a database handle is available, and always
+also appends to a local JSONL file as a zero-dependency fallback / audit
+trail. Never deletes or overwrites — append-only.
+"""
+from __future__ import annotations
+
+import json
+import logging
+from datetime import datetime, timezone
+from pathlib import Path
+from typing import Any, Dict, Optional
+
+logger = logging.getLogger(__name__)
+
+DATA_DIR = Path(__file__).resolve().parents[2] / "data"
+CUSTOMERS_JSONL = DATA_DIR / "customers.jsonl"
+
+
+def _append_jsonl(record: Dict[str, Any]) -> None:
+    DATA_DIR.mkdir(parents=True, exist_ok=True)
+    with CUSTOMERS_JSONL.open("a", encoding="utf-8") as fh:
+        fh.write(json.dumps(record, default=str) + "\n")
+
+
+async def record_checkout_started(
+    *, plan: str, customer_email: Optional[str], session_id: str, db=None
+) -> None:
+    record = {
+        "event": "checkout_started",
+        "plan": plan,
+        "customer_email": customer_email,
+        "stripe_session_id": session_id,
+        "timestamp": datetime.now(timezone.utc).isoformat(),
+    }
+    _append_jsonl(record)
+    if db is not None:
+        try:
+            await db.billing_events.insert_one(dict(record))
+        except Exception:  # pragma: no cover - best-effort secondary store
+            logger.exception("Failed to write checkout_started to Mongo")
+
+
+async def record_checkout_completed(
+    *,
+    plan: str,
+    customer_email: Optional[str],
+    session_id: str,
+    subscription_id: Optional[str],
+    db=None,
+) -> None:
+    record = {
+        "event": "checkout_completed",
+        "plan": plan,
+        "customer_email": customer_email,
+        "stripe_session_id": session_id,
+        "stripe_subscription_id": subscription_id,
+        "timestamp": datetime.now(timezone.utc).isoformat(),
+    }
+    _append_jsonl(record)
+    if db is not None:
+        try:
+            await db.billing_events.insert_one(dict(record))
+            if customer_email:
+                await db.customers.update_one(
+                    {"email": customer_email},
+                    {"$set": {"plan": plan, "stripe_subscription_id": subscription_id}},
+                    upsert=True,
+                )
+        except Exception:  # pragma: no cover - best-effort secondary store
+            logger.exception("Failed to write checkout_completed to Mongo")
