@@ -9,15 +9,12 @@ Marketplace requires **100 installations before a paid plan can go live**
 customers realistically come through Stripe/direct sale first, Marketplace
 distribution second. Both paths are additive, not exclusive.
 
-Scope note (deliberate, to keep v1 shippable): this v1 App requests only
-`metadata: read` — it does NOT ask for repo contents/PR permissions.
-Omni-Agent's actual task-execution engine (omni_agent/) still runs as a
-local CLI against the customer's repo (matches the existing "runs on your
-machine, we never see your code" pitch in omni_agent/sales/). The GitHub
-App's job for v1 is: be an installable, listable Marketplace entity that
-identifies installs/accounts and receives Marketplace billing events.
-Expanding permissions so the App itself opens PRs / posts checks is a
-deliberate Phase 2, once there's a paid customer to build it for.
+V2 UPDATE (Phase 1-3):
+- Expanded DEFAULT_PERMISSIONS to support PR creation, check runs, and commit statuses.
+- App now requests: metadata:read, contents:read, pull_requests:write, checks:write
+- GitHub App can now autonomously open PRs and post check runs on behalf of tasks.
+- Local execution model unchanged — the App's new permissions only activate when
+  an installation has explicitly granted them during the install flow.
 """
 from __future__ import annotations
 
@@ -75,7 +72,7 @@ def build_manifest() -> Dict[str, Any]:
         "description": (
             "Close your TODO.md, with receipts. Omni-Agent scans your repo's "
             "markdown backlog and turns unfinished tasks into evaluated, "
-            "audit-grade work."
+            "audit-grade work — with autonomous PR creation and evidence."
         ),
         "public": True,
         "default_events": DEFAULT_EVENTS,
@@ -87,9 +84,15 @@ def build_manifest() -> Dict[str, Any]:
     return {k: v for k, v in manifest.items() if v not in (None, "")}
 
 
-# Minimal, deliberately narrow — see module docstring "Scope note".
+# V2 EXPANDED PERMISSIONS: enables autonomous PR + check-run posting.
+# Users must grant these permissions during install; they're not retroactively
+# applied to v1-only installs.
 DEFAULT_PERMISSIONS: Dict[str, str] = {
-    "metadata": "read",
+    "metadata": "read",           # original v1
+    "contents": "read",            # V2: read repo to validate file paths
+    "pull_requests": "write",       # V2: create PRs from task completions
+    "checks": "write",              # V2: post check runs with cohesion scores
+    "statuses": "write",            # V2 fallback: legacy commit status API
 }
 
 # installation(_repositories): know who has the app installed, on what repos.

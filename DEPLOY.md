@@ -1,11 +1,9 @@
 # Omni-Agent — Last Mile to First Dollar
 
-Everything below the line was code-ready as of six stacked PRs
-(`feat/backend-billing-and-health` → `feat/frontend-stripe-checkout` →
-`feat/deploy-config` → `feat/github-app-core` →
-`feat/frontend-marketplace-cta` → `feat/marketplace-deploy-config`).
-Nothing was merged, deployed, or wired to real money/GitHub by that work —
-those are the taps below, in order.
+The original six stacked launch PRs are merged. This runbook now covers
+the remaining live-service configuration plus V2 autonomous PR posting.
+Merging code does not deploy it or connect real Stripe/GitHub credentials;
+those founder-controlled production taps remain below.
 
 **Primary target: a paid GitHub App listed on the GitHub Marketplace**
 (product direction). Marketplace requires ~100 installs and a verified
@@ -16,15 +14,12 @@ builds toward Marketplace eligibility. Both paths are live in the code at
 once; the landing page shows whichever is configured (see
 `frontend/src/lib/github.js`).
 
-## 1. Merge the stack
+## 1. Merged foundation — complete
 
-In order (each is based on the previous one):
-1. Backend billing + health routes
-2. Frontend checkout buttons
-3. Deploy config (Render blueprint, Dockerfile)
-4. GitHub App core (manifest flow, Marketplace webhook)
-5. Frontend Marketplace CTA
-6. This: updated deploy config + `MARKETPLACE.md`
+The six launch layers are now on `main`: billing/health, checkout,
+Render deployment, GitHub App core, Marketplace-aware frontend CTAs, and
+Marketplace deployment documentation. V2 adds the evaluated-task →
+evidence preview → authenticated PR → check-run completion loop.
 
 ## 2. Deploy (Render, via the included blueprint)
 
@@ -35,7 +30,9 @@ In order (each is based on the previous one):
    - `omni-agent-api`: `CORS_ORIGINS`, `APP_BASE_URL`, `FRONTEND_BASE_URL`
      (fill both in after the first deploy, once you know the URLs, then
      redeploy), `MONGO_URL` (optional), plus the Stripe and GitHub App
-     vars below once you have them.
+     vars below once you have them. Also set `OMNI_AGENT_INTERNAL_TOKEN`
+     to a long random value; the local orchestrator must use the same value
+     when it calls the autonomous PR endpoint.
    - `omni-agent-web`: `REACT_APP_BACKEND_URL`.
 3. **Apply** — this is the actual go-live deploy tap.
 4. `curl https://<api-domain>/api/health` → confirm `200`, everything
@@ -64,6 +61,22 @@ In order (each is based on the previous one):
    Marketplace listing exists.
 4. Install it on a test repo yourself, confirm
    `backend/data/github_installations.jsonl` records it.
+5. Configure V2 PR posting in `omni_agent/config.yaml`:
+   - set `github.owner`, `github.repo`, and `github.installation_id`;
+   - set `OMNI_AGENT_API_URL` to the deployed API URL;
+   - set `OMNI_AGENT_INTERNAL_TOKEN` to the same private value used by
+     `omni-agent-api`;
+   - set `OMNI_AGENT_HEAD_BRANCH` to the already-pushed task branch, or
+     use the configured `omni-agent/<task_id>` branch convention.
+6. Run one evaluated task. A successful `done` result must now include the
+   GitHub PR URL; the same URL is persisted as a `github_pull_request`
+   artifact and rendered in the client report. The endpoint fails closed
+   with 401/503 when its caller token is missing or invalid.
+
+V2 opens a PR from an existing remote head branch; it does not silently
+push local changes or write through the GitHub App's `contents` permission.
+That keeps branch publication under the repository's existing credential
+and approval boundary.
 
 ## 5. List on GitHub Marketplace
 

@@ -18,7 +18,7 @@ from app.routers import github_app as github_app_router  # noqa: E402
 client = TestClient(app)
 
 
-def test_manifest_has_required_fields_and_minimal_permissions(monkeypatch):
+def test_manifest_has_required_fields_and_v2_permissions(monkeypatch):
     monkeypatch.setenv("APP_BASE_URL", "https://api.example.com")
     monkeypatch.setenv("FRONTEND_BASE_URL", "https://omni-agent.example.com")
     m = gh_config.build_manifest()
@@ -26,8 +26,14 @@ def test_manifest_has_required_fields_and_minimal_permissions(monkeypatch):
     assert m["redirect_url"] == "https://api.example.com/api/github/manifest-callback"
     assert m["public"] is True
     assert set(m["default_events"]) == {"installation", "installation_repositories", "marketplace_purchase"}
-    # Deliberately minimal — see app/core/github_app.py "Scope note".
-    assert m["default_permissions"] == {"metadata": "read"}
+    # V2 remains least-privilege for the declared PR/check capabilities.
+    assert m["default_permissions"] == {
+        "metadata": "read",
+        "contents": "read",
+        "pull_requests": "write",
+        "checks": "write",
+        "statuses": "write",
+    }
 
 
 def test_registration_url_uses_org_when_configured(monkeypatch):

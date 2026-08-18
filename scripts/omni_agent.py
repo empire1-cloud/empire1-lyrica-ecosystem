@@ -136,6 +136,11 @@ def _print_human_output(out: dict) -> None:
     if gc:
         print(f"Guardrail: score={gc.get('score')} proposed={gc.get('proposed_total')} "
               f"applied={gc.get('applied_total')} filtered={len(gc.get('filtered_paths') or [])}")
+    github_pr = out.get("github_pr") or {}
+    if github_pr.get("pr_url"):
+        print(f"Pull request:          {github_pr.get('pr_url')}")
+        if github_pr.get("check_run_id"):
+            print(f"Check run ID:          {github_pr.get('check_run_id')}")
     cr = out.get("client_report")
     if cr:
         print(f"Client report: {cr.get('markdown')}")
