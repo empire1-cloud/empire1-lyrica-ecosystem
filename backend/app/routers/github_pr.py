@@ -12,7 +12,9 @@ status. It handles:
 """
 from __future__ import annotations
 
+import hmac
 import logging
+import os
 from typing import Optional
 
 from fastapi import APIRouter, Request
@@ -51,6 +53,15 @@ class CreatePRRequest(BaseModel):
     draft: bool = False
     """If True, create PR as draft (won't trigger auto-merge rules)"""
 
+    title: Optional[str] = None
+    """Evidence-generated PR title from the orchestrator."""
+
+    body: Optional[str] = None
+    """Evidence-generated PR body from the orchestrator."""
+
+    cohesion_score: Optional[float] = None
+    """Final task cohesion score for the check run and fallback body."""
+
     include_check_run: bool = True
     """If True, post a check run with cohesion score to the PR's head commit."""
 
@@ -72,23 +83,53 @@ async def create_pr(payload: CreatePRRequest, request: Request):
     Create a PR from an omni-agent task completion.
 
     Flow:
-    1. Fetch the task from omni_agent's state (SQL or JSON export)
-    2. Generate PR preview markdown (scope, files, tests, risks)
-    3. Call GitHub API to create the PR
+    1. Authenticate the orchestrator's internal bearer token
+    2. Receive the completed task's evidence-generated PR preview
+    3. Call GitHub API with the requested App installation
     4. Optionally post a check run with the cohesion score
     5. Return the PR URL + check run ID if successful
 
     This endpoint is called by the orchestrator after evaluator marks a task 'done'.
 
     Error cases:
-    - Task not found: 404-like response with error_code='task_not_found'
-    - Installation not configured: 503-like with 'github_not_configured'
-    - GitHub API rejected PR: 502-like with 'github_api_error'
-    - No writable branch: 400-like with 'branch_not_found'
+    - Caller token missing on server: 503 with 'internal_auth_not_configured'
+    - Caller token rejected: 401 with 'unauthorized'
+    - Installation not configured: response with 'github_not_configured'
+    - GitHub API rejected PR: response with 'github_api_error'
     """
 
-    # TODO: Replace stub with real task lookup from omni_agent state.
-    # For now, we accept the PR preview in the request or construct a minimal one.
+    expected_token = os.environ.get("OMNI_AGENT_INTERNAL_TOKEN")
+    if not expected_token:
+        logger.error("OMNI_AGENT_INTERNAL_TOKEN is not configured")
+        return JSONResponse(
+            status_code=503,
+            content={
+                "success": False,
+                "error": "Internal caller authentication is not configured",
+                "error_code": "internal_auth_not_configured",
+            },
+        )
+
+    authorization = request.headers.get("authorization", "")
+    scheme, _, supplied_token = authorization.partition(" ")
+    authenticated = (
+        scheme.lower() == "bearer"
+        and bool(supplied_token)
+        and hmac.compare_digest(supplied_token, expected_token)
+    )
+    if not authenticated:
+        logger.warning("Rejected unauthorized autonomous PR request")
+        return JSONResponse(
+            status_code=401,
+            content={
+                "success": False,
+                "error": "Unauthorized",
+                "error_code": "unauthorized",
+            },
+        )
+
+    # The orchestrator generates the authoritative preview from its local
+    # evidence store and sends it here, keeping this API stateless.
     task_id = payload.task_id
     owner = payload.owner
     repo = payload.repo
@@ -101,16 +142,21 @@ async def create_pr(payload: CreatePRRequest, request: Request):
         # Initialize GitHub API service with this installation
         gh = GitHubAPIService(installation_id)
 
-        # Generate PR title and body
-        # In production, fetch from omni_agent.reporting.pr_preview.generate()
-        # For now, minimal defaults.
-        pr_title = f"[omni-agent] {task_id}: Task completed"
-        pr_body = (
+        # Prefer the evidence-rich preview produced by the orchestrator.
+        # Fallback content keeps direct API callers backward compatible.
+        pr_title = (payload.title or f"[omni-agent] {task_id}: Task completed")[:256]
+        score_line = (
+            f"**Cohesion score**: {payload.cohesion_score}\n"
+            if payload.cohesion_score is not None
+            else ""
+        )
+        pr_body = payload.body or (
             f"## Task: `{task_id}`\n\n"
             f"This PR was automatically created by Omni-Agent after task "
             f"evaluation passed.\n\n"
             f"**Base**: {base}\n"
-            f"**Head**: {head}\n\n"
+            f"**Head**: {head}\n"
+            f"{score_line}\n"
             f"### Evidence\n"
             f"See the task reports in omni_agent/reports/ for full details.\n"
         )
@@ -152,7 +198,14 @@ async def create_pr(payload: CreatePRRequest, request: Request):
                     conclusion="success",
                     output={
                         "title": f"Task {task_id} Completed",
-                        "summary": f"Omni-Agent completed task {task_id} and opened this PR.",
+                        "summary": (
+                            f"Omni-Agent completed task {task_id} and opened this PR."
+                            + (
+                                f" Cohesion score: {payload.cohesion_score}."
+                                if payload.cohesion_score is not None
+                                else ""
+                            )
+                        ),
                     },
                 )
                 check_run_id = check_response.get("id")
