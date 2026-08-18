@@ -1,3 +1,4 @@
+# Triggered through a normal merged PR so GitHub runs the workflow.
 name: Capture Omni-Agent product screenshots
 
 on:
