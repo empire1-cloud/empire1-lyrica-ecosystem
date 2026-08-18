@@ -1,0 +1,4 @@
+# Optional Emergent-only dependency set.
+# Use only on environments configured with Emergent's private package index.
+-r requirements.txt
+emergentintegrations==0.1.0
