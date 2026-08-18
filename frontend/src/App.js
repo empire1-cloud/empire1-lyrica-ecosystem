@@ -2,8 +2,10 @@ import { useState } from "react";
 import { Route, Routes } from "react-router-dom";
 import "./App.css";
 import { startCheckout } from "@/lib/billing";
+import { getMarketplaceUrl, getPrimaryInstallUrl, isMarketplaceLive } from "@/lib/github";
 import SuccessPage from "@/components/SuccessPage";
 import CancelPage from "@/components/CancelPage";
+import GithubInstalledPage from "@/components/GithubInstalledPage";
 
 const plans = [
   { name: "Free", price: "$0", note: "25 tasks each month", features: ["Rule-mode agent loop", "One workspace", "30-day history"], cta: "Start free" },
@@ -14,12 +16,17 @@ const plans = [
 
 const email = "founder@empire1.cloud";
 
-// Pro/Team go through real Stripe Checkout. Free needs no checkout.
-// Enterprise stays a mailto — it's sales-assisted by design, never
-// self-serve (see omni_agent/sales/pricing.md).
+// Plan selection + billing for Free/Pro/Team happens on GitHub's own
+// Marketplace listing page once it's live (GitHub hosts that UI, not us —
+// see omni_agent/sales/pricing.md and DEPLOY.md for why). Until then, the
+// Stripe checkout built earlier stays as a direct-sale fallback: Marketplace
+// requires 100 installs before a paid plan can even go live, so early
+// customers need a way to pay before that threshold is hit. Enterprise
+// stays sales-assisted (mailto) either way — that's not a Marketplace deal.
 function PlanCard({ plan }) {
   const [status, setStatus] = useState("idle"); // idle | loading | error
   const [error, setError] = useState(null);
+  const marketplaceUrl = getMarketplaceUrl();
 
   if (!plan.planKey) {
     return (
@@ -53,23 +60,46 @@ function PlanCard({ plan }) {
       <div className="price">{plan.price}<span>{plan.suffix}</span></div>
       <p>{plan.note}</p>
       <ul>{plan.features.map((f) => <li key={f}>{f}</li>)}</ul>
-      <button type="button" onClick={handleBuy} disabled={status === "loading"}>
-        {status === "loading" ? "Redirecting…" : plan.cta}
-      </button>
+      {marketplaceUrl ? (
+        <a href={marketplaceUrl} target="_blank" rel="noreferrer">
+          View on GitHub Marketplace
+        </a>
+      ) : (
+        <button type="button" onClick={handleBuy} disabled={status === "loading"}>
+          {status === "loading" ? "Redirecting…" : plan.cta}
+        </button>
+      )}
       {status === "error" && <p className="checkoutError">{error}</p>}
+      {!marketplaceUrl && (
+        <p className="planNote">Also coming to GitHub Marketplace.</p>
+      )}
     </article>
   );
 }
 
 function Home() {
+  const primaryInstallUrl = getPrimaryInstallUrl();
+  const marketplaceLive = isMarketplaceLive();
+
   return (
     <main>
       <nav><a className="brand" href="#top">OMNI<span>AGENT</span></a><div><a href="#product">Product</a><a href="#pricing">Pricing</a><a className="navCta" href={`mailto:${email}?subject=Omni-Agent demo`}>Book demo</a></div></nav>
       <section className="hero" id="top">
-        <p className="eyebrow">AI EXECUTION FOR REAL REPOSITORIES</p>
+        <p className="eyebrow">
+          {marketplaceLive ? "ON GITHUB MARKETPLACE" : "AI EXECUTION FOR REAL REPOSITORIES"}
+        </p>
         <h1>Close your <code>TODO.md</code>.<br/><em>With receipts.</em></h1>
         <p className="lead">Omni-Agent turns unfinished repository tasks into reviewed work, then shows what changed, what passed, what was blocked and what the work saved.</p>
-        <div className="actions"><a className="primary" href={`mailto:${email}?subject=Start Omni-Agent free`}>Start free</a><a className="secondary" href={`mailto:${email}?subject=Omni-Agent 20-minute demo`}>Book a 20-minute demo</a></div>
+        <div className="actions">
+          {primaryInstallUrl ? (
+            <a className="primary" href={primaryInstallUrl} target="_blank" rel="noreferrer">
+              {marketplaceLive ? "Install via GitHub Marketplace" : "Install the GitHub App"}
+            </a>
+          ) : (
+            <a className="primary" href={`mailto:${email}?subject=Start Omni-Agent free`}>Start free</a>
+          )}
+          <a className="secondary" href={`mailto:${email}?subject=Omni-Agent 20-minute demo`}>Book a 20-minute demo</a>
+        </div>
         <p className="trust">Runs on your machine · Protects forbidden paths · Nothing passes without evaluation</p>
       </section>
 
@@ -100,6 +130,7 @@ function App() {
       <Route path="/" element={<Home />} />
       <Route path="/success" element={<SuccessPage />} />
       <Route path="/cancel" element={<CancelPage />} />
+      <Route path="/github/installed" element={<GithubInstalledPage />} />
     </Routes>
   );
 }
