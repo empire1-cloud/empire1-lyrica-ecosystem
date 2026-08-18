@@ -1,0 +1,64 @@
+# Render Blueprint for Omni-Agent's marketing/billing surface (the API +
+# pricing site — NOT the omni_agent CLI itself, which stays a local tool).
+#
+# This file only describes infrastructure. It deploys NOTHING on its own —
+# Render only acts on it when someone connects this repo as a Blueprint in
+# the Render dashboard and clicks Apply, which is a deploy-to-live-traffic
+# step deliberately left for the founder to do by hand.
+#
+# All secrets below are `sync: false`, meaning Render will prompt for them
+# once in the dashboard and never expect them in this file or in git.
+#
+# Validate locally before applying: `render blueprints validate`
+
+services:
+  - type: web
+    name: omni-agent-api
+    runtime: python
+    rootDir: backend
+    plan: starter
+    # requirements-deploy.txt = requirements.txt minus emergentintegrations
+    # (an Emergent-private package that isn't resolvable off-platform —
+    # see backend/requirements-deploy.txt for why this is safe).
+    buildCommand: pip install -r requirements-deploy.txt
+    startCommand: uvicorn server:app --host 0.0.0.0 --port $PORT
+    healthCheckPath: /api/health
+    buildFilter:
+      paths:
+        - backend/**
+    envVars:
+      - key: CORS_ORIGINS
+        sync: false # set to the deployed frontend origin, e.g. https://omni-agent-web.onrender.com
+      - key: MONGO_URL
+        sync: false # optional — app boots and serves billing/health without it
+      - key: DB_NAME
+        value: omni_agent
+      - key: STRIPE_SECRET_KEY
+        sync: false # start with a sk_test_... key, verify the full flow, then go live
+      - key: STRIPE_WEBHOOK_SECRET
+        sync: false # from the Stripe Dashboard webhook endpoint for /api/billing/webhook
+      - key: STRIPE_PRICE_PRO
+        sync: false
+      - key: STRIPE_PRICE_TEAM
+        sync: false
+      - key: APP_BASE_URL
+        sync: false # this API's own public URL, e.g. https://omni-agent-api.onrender.com
+
+  - type: web
+    name: omni-agent-web
+    runtime: static
+    rootDir: frontend
+    buildCommand: npm ci --legacy-peer-deps && npm run build
+    staticPublishPath: build
+    buildFilter:
+      paths:
+        - frontend/**
+    routes:
+      # Client-side routes (/success, /cancel) need to resolve to index.html
+      # on a hard refresh or a direct link — this is a single-page app.
+      - type: rewrite
+        source: /*
+        destination: /index.html
+    envVars:
+      - key: REACT_APP_BACKEND_URL
+        sync: false # set to omni-agent-api's public URL once it's deployed
