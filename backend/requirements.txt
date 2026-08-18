@@ -25,7 +25,13 @@ numpy>=1.26.0
 python-multipart>=0.0.9
 jq>=1.6.0
 typer>=0.9.0
-emergentintegrations==0.1.0
+
+# Emergent is optional and intentionally NOT installed from this public-host
+# requirements file. The package is distributed from Emergent's private index
+# and makes Vercel/Render/Fly/Railway dependency resolution fail when included
+# here. Install backend/requirements-emergent.txt only in an environment that
+# has access to the Emergent package index. Omni's hybrid LLM client already
+# fails over when Emergent is unavailable.
 
 # Billing (self-serve Pro/Team checkout — see app/services/stripe_service.py)
 stripe>=9.0.0
