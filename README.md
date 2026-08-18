@@ -138,7 +138,7 @@ This is the direct-sale bridge for early customers.
 
 The code also includes the GitHub App installation and Marketplace webhook foundation. A paid Marketplace listing is a GitHub-side process with publisher/listing eligibility and review requirements, so the repository does **not** claim that Omni-Agent is already listed or approved.
 
-When a Marketplace URL is configured, the frontend automatically promotes it as the primary self-serve path. Until then, the existing direct-sale and founder-contact paths remain available.
+When a Marketplace URL is configured, the frontend automatically promotes it as the primary self-serve path. Until then, the existing direct-sale and contact paths remain available.
 
 See [`MARKETPLACE.md`](MARKETPLACE.md) for the current rollout checklist and [`DEPLOY.md`](DEPLOY.md) for deployment sequencing.
 
@@ -190,4 +190,4 @@ External activation still depends on operator-controlled steps such as deploymen
 
 Omni-Agent is an Empire-1 product.
 
-Contact: **founder@empire1.cloud**
+Contact: **manda@empire1.cloud**
