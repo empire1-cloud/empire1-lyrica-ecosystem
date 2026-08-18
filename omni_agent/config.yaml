@@ -66,7 +66,10 @@ reports:
 
 # V2 GitHub integration: autonomous PR posting after task completion
 github:
-  # Enable/disable automatic PR creation when a task reaches 'done' status
+  # Canonical opt-in: post a PR only after a task reaches 'done'
+  auto_post_pr: true
+
+  # Backward-compatible alias retained for older installations
   auto_create_pr: true
   
   # GitHub repository owner (org or user login)
@@ -86,13 +89,24 @@ github:
   
   # Branch prefix for task-specific branches (e.g., "omni-agent/TASK-001")
   branch_prefix: omni-agent
+
+  # Optional explicit already-pushed head branch. Supports "{task_id}".
+  # OMNI_AGENT_HEAD_BRANCH can supply this at runtime.
+  head_branch: null
   
   # Optional: API base URL for the omni-agent backend
   # Used to call POST /api/github/create-pr
   # If not set, defaults to http://localhost:8000
   api_base_url: null
+
+  # Name of the environment variable holding the private caller token.
+  # The token itself must never be committed to this file.
+  api_token_env: OMNI_AGENT_INTERNAL_TOKEN
   
-  # Post check runs with cohesion score (requires GitHub App checks:write permission)
+  # Canonical opt-in for check runs (requires GitHub App checks:write)
+  post_check_runs: true
+
+  # Backward-compatible alias retained for older installations
   include_check_runs: true
   
   # Draft PRs initially; require approval before auto-merge
