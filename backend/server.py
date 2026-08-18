@@ -44,6 +44,7 @@ app = FastAPI(title="Omni-Agent API")
 app.state.db = db
 
 from app.routers import billing as billing_router  # noqa: E402
+from app.routers import github_app as github_app_router  # noqa: E402
 from app.routers import health as health_router  # noqa: E402
 
 # Create a router with the /api prefix
@@ -100,6 +101,7 @@ async def get_status_checks():
 app.include_router(api_router)
 app.include_router(billing_router.router)
 app.include_router(health_router.router)
+app.include_router(github_app_router.router)
 
 app.add_middleware(
     CORSMiddleware,
