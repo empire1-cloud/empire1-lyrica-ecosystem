@@ -1,6 +1,6 @@
 import { Link } from "react-router-dom";
 
-const email = "founder@empire1.cloud";
+const email = "manda@empire1.cloud";
 
 export default function CancelPage() {
   return (

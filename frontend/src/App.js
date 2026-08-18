@@ -11,10 +11,10 @@ const plans = [
   { name: "Free", price: "$0", note: "25 tasks each month", features: ["Rule-mode agent loop", "One workspace", "30-day history"], cta: "Start free" },
   { name: "Pro", price: "$49", suffix: "/seat/month", note: "For founders and technical leads", features: ["500 tasks each month", "AI + rule fallback", "Reports, ROI and PR previews"], cta: "Start Pro", featured: true, planKey: "pro" },
   { name: "Team", price: "$299", suffix: "/workspace/month", note: "10 seats included", features: ["5,000 tasks each month", "GitHub, Slack and Linear hooks", "Audit export and priority support"], cta: "Get Team", planKey: "team" },
-  { name: "Enterprise", price: "From $2,000", suffix: "/month", note: "For controlled or private environments", features: ["Self-hosted deployment", "SSO and company rules", "Dedicated onboarding"], cta: "Talk to the founder" },
+  { name: "Enterprise", price: "From $2,000", suffix: "/month", note: "For controlled or private environments", features: ["Self-hosted deployment", "SSO and company rules", "Dedicated onboarding"], cta: "Talk to Manda" },
 ];
 
-const email = "founder@empire1.cloud";
+const email = "manda@empire1.cloud";
 
 // Plan selection + billing for Free/Pro/Team happens on GitHub's own
 // Marketplace listing page once it's live (GitHub hosts that UI, not us —

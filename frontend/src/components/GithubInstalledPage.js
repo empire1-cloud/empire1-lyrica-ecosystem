@@ -1,6 +1,6 @@
 import { Link } from "react-router-dom";
 
-const email = "founder@empire1.cloud";
+const email = "manda@empire1.cloud";
 
 // Target of the GitHub App manifest's `setup_url` — where GitHub sends
 // the browser right after someone installs the App.
