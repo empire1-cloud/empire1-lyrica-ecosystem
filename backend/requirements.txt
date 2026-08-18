@@ -28,3 +28,8 @@ emergentintegrations==0.1.0
 
 # Billing (self-serve Pro/Team checkout — see app/services/stripe_service.py)
 stripe>=9.0.0
+
+# GitHub App (Marketplace listing, webhooks, manifest flow — see
+# app/routers/github_app.py). pyjwt + cryptography above cover RS256
+# signing for the App JWT.
+httpx>=0.27

@@ -10,6 +10,8 @@ import os
 
 from fastapi import APIRouter
 
+from app.core.github_app import is_configured as github_app_configured
+from app.core.github_app import webhook_configured as github_webhook_configured
 from app.services.health_service import get_health
 
 router = APIRouter(prefix="/api/health", tags=["health"])
@@ -20,4 +22,6 @@ async def health():
     payload = dict(get_health())
     payload["mongo_configured"] = bool(os.environ.get("MONGO_URL"))
     payload["stripe_configured"] = bool(os.environ.get("STRIPE_SECRET_KEY"))
+    payload["github_app_configured"] = github_app_configured()
+    payload["github_webhook_configured"] = github_webhook_configured()
     return payload
