@@ -1,8 +1,7 @@
-# Triggered through a normal merged PR so GitHub runs the workflow.
 name: Capture Omni-Agent product screenshots
 
 on:
-  push:
+  pull_request:
     paths:
       - .github/workflows/capture-product-screenshots.yml
   workflow_dispatch:
@@ -14,8 +13,10 @@ jobs:
   capture:
     runs-on: ubuntu-latest
     steps:
-      - name: Check out repository
+      - name: Check out PR branch
         uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.ref }}
 
       - name: Set up Node
         uses: actions/setup-node@v4
@@ -36,7 +37,6 @@ jobs:
       - name: Serve built SPA
         run: |
           npx --yes serve@14 -s frontend/build -l 4173 > /tmp/omni-serve.log 2>&1 &
-          echo $! > /tmp/omni-serve.pid
           for i in {1..30}; do
             if curl -fsS http://127.0.0.1:4173/ >/dev/null; then exit 0; fi
             sleep 1
@@ -51,7 +51,7 @@ jobs:
           npx --yes playwright@1.55.0 screenshot --browser chromium --viewport-size='1440,900' http://127.0.0.1:4173/#pricing docs/screenshots/pricing.png
           npx --yes playwright@1.55.0 screenshot --browser chromium --viewport-size='1440,900' http://127.0.0.1:4173/github/installed docs/screenshots/github-installed.png
 
-      - name: Commit screenshots
+      - name: Commit screenshots to PR branch
         run: |
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
@@ -60,5 +60,5 @@ jobs:
             echo 'Screenshots already current.'
           else
             git commit -m 'docs: capture Omni-Agent product screenshots'
-            git push
+            git push origin HEAD:${{ github.event.pull_request.head.ref }}
           fi
