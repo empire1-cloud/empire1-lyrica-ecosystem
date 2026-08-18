@@ -136,6 +136,10 @@ def generate(
         exec_summary_bits.append(
             f"- **Blocked stage / reason**: `{run_output['blocked_stage']}` / `{run_output['blocked_reason']}`"
         )
+    github_pr = run_output.get("github_pr") or {}
+    pr_url = github_pr.get("pr_url")
+    if pr_url:
+        exec_summary_bits.append(f"- **Pull request**: [{pr_url}]({pr_url})")
 
     md_lines: List[str] = [
         f"# Omni-Agent Client Report — {date}",
@@ -153,6 +157,15 @@ def generate(
         )
     else:
         md_lines.append(f"_No tasks completed in this run. Final status: `{final_status}`._")
+
+    if pr_url:
+        md_lines += [
+            "",
+            "## Pull request",
+            f"- **PR #{github_pr.get('pr_number')}**: [{pr_url}]({pr_url})",
+        ]
+        if github_pr.get("check_run_id"):
+            md_lines.append(f"- **Check run ID**: `{github_pr['check_run_id']}`")
 
     md_lines += [
         "",
@@ -243,6 +256,7 @@ def generate(
                 "files_changed_count": len(files_changed),
                 "blocked_stage": run_output.get("blocked_stage"),
                 "blocked_reason": run_output.get("blocked_reason"),
+                "github_pr": github_pr or None,
             },
             "tasks_completed": (
                 [{"task_id": tid, "cohesion": cohesion}] if final_status == "done" else []
