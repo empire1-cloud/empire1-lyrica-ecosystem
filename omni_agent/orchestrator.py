@@ -11,6 +11,7 @@ from typing import Any, Dict, Optional
 import yaml
 
 from omni_agent.guardrails import Guardrails
+from omni_agent.github_integration import GitHubIntegrationConfig, create_pr_from_task_sync
 from omni_agent.llm_client import LLMClient
 from omni_agent.personas import analyst, developer, evaluator
 from omni_agent.reporting import client_report, pr_preview, roi as roi_mod
@@ -197,6 +198,13 @@ class Orchestrator:
         self.state.end_run(run_id, final_status=final_status, cohesion_score=score, summary=summary)
         out = self._build_output(task, run_id, tri, spec, dev_out, eval_out,
                                  final_status=final_status, blockers=[], dry_run=False)
+        if final_status == "done":
+            self._attach_github_pr(
+                task_id=task_id,
+                run_id=run_id,
+                cohesion_score=score,
+                out=out,
+            )
         # auto-generate client report (non-fatal if it errors)
         try:
             paths = client_report.generate(run_output=out, state=self.state, config=self.config)
@@ -211,6 +219,52 @@ class Orchestrator:
         if not nxt:
             return None
         return self.run_task(nxt["id"], dry_run=dry_run)
+
+    def _attach_github_pr(
+        self,
+        *,
+        task_id: str,
+        run_id: str,
+        cohesion_score: float,
+        out: Dict[str, Any],
+    ) -> None:
+        """Post and persist a PR for a completed task without failing the task."""
+        out["github_pr"] = None
+        github_config = GitHubIntegrationConfig(self.config)
+        if not github_config.is_ready():
+            return
+
+        title = None
+        body = None
+        try:
+            preview = self.generate_pr_preview(task_id)
+            title = (preview.get("meta") or {}).get("title")
+            body = preview.get("markdown")
+        except Exception as exc:  # pragma: no cover - fallback body remains valid
+            logger.warning("PR preview generation failed for %s: %s", task_id, exc)
+
+        result = create_pr_from_task_sync(
+            task_id=task_id,
+            config=github_config,
+            cohesion_score=cohesion_score,
+            title=title,
+            body=body,
+        )
+        if not result:
+            return
+
+        evidence = {"status": "created", **result}
+        out["github_pr"] = evidence
+        try:
+            self.state.add_artifact(
+                run_id,
+                task_id,
+                "github_pull_request",
+                result.get("pr_url"),
+                evidence,
+            )
+        except Exception as exc:  # pragma: no cover - output still carries the URL
+            logger.warning("PR artifact persistence failed for %s: %s", task_id, exc)
 
     # ---------- monetized features ----------
     def compute_roi(self, *, window: Optional[str] = None) -> Dict[str, Any]:
